@@ -84,16 +84,16 @@ export const apiClient = {
     }
 
     return response.json();
-  }
-  //   uploadToS3: async (url: string, file: File) => {
-  //     const response = await fetch(url, {
-  //       method: "PUT",
-  //       body: file,
-  //       headers: { "Content-Type": file.type },
-  //     });
-  //     if (!response.ok) {
-  //       throw new Error(`S3 Upload Error: ${response.status}`);
-  //     }
-  //     return response; // S3 doesn't return JSON
-  //   },
+  },
+    uploadToS3: async (url: string, file: File) => {
+    const response = await fetch(url, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+    });
+    if (!response.ok) {
+      throw new Error(`S3 Upload Error: ${response.status}`);
+    }
+    return response; // S3 doesn't return JSON
+  },
 };
