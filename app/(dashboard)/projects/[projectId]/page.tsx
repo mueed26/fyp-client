@@ -11,6 +11,8 @@ import { NotFound } from "@/components/ui/NotFound";
 import toast from "react-hot-toast";
 import { Project, Chat, ProjectDocument, ProjectSettings } from "@/lib/types";
 
+import { useRouter } from "next/navigation";
+
 interface ProjectPageProps {
     params: Promise<{
         projectId: string;
@@ -28,6 +30,7 @@ function ProjectPage({ params }: ProjectPageProps) {
     const { projectId } = use(params);
     const { getToken, userId } = useAuth();
 
+    const router = useRouter();
     // Data state
     const [data, setData] = useState<ProjectData>({
         project: null,
@@ -51,7 +54,6 @@ function ProjectPage({ params }: ProjectPageProps) {
     );
 
     // Load all data
-
     useEffect(() => {
         const loadAllData = async () => {
             if (!userId) return;
@@ -87,7 +89,38 @@ function ProjectPage({ params }: ProjectPageProps) {
         loadAllData();
     }, [userId, projectId]);
 
-    //   Chat-related methods
+    useEffect(() => {
+        const hasProcessingDocuments = data.documents.some(
+            (doc) =>
+                doc.processing_status &&
+                !["completed", "failed"].includes(doc.processing_status)
+        );
+
+        if (!hasProcessingDocuments) {
+            return;
+        }
+
+        const pollInterval = setInterval(async () => {
+            try {
+                const token = await getToken();
+                const documentsRes = await apiClient.get(
+                    `/api/projects/${projectId}/files`,
+                    token
+                );
+
+                setData((prev) => ({
+                    ...prev,
+                    documents: documentsRes.data,
+                }));
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }, 2000);
+
+        return () => clearInterval(pollInterval);
+    }, [data.documents, projectId, getToken]);
+
+    // Chat-related methods
     const handleCreateNewChat = async () => {
         if (!userId) return;
 
@@ -108,6 +141,7 @@ function ProjectPage({ params }: ProjectPageProps) {
             );
 
             const savedChat = result.data;
+            router.push(`/projects/${projectId}/chats/${savedChat.id}`)
 
             // Update local state
             setData((prev) => ({
@@ -144,12 +178,10 @@ function ProjectPage({ params }: ProjectPageProps) {
     };
 
     const handleChatClick = (chatId: string) => {
-        console.log("Navigate to chat:", chatId);
+        router.push(`/projects/${projectId}/chats/${chatId}`)
     };
 
-    //   Document-related methods
-    //make api call to the ednpoint and get the presigned url for each file and then uplaod to s3 
-
+    // Document-related methods
     const handleDocumentUpload = async (files: File[]) => {
         if (!userId) return;
 
@@ -228,7 +260,6 @@ function ProjectPage({ params }: ProjectPageProps) {
         }
     };
 
-
     const handleUrlAdd = async (url: string) => {
         if (!userId) return;
 
@@ -263,7 +294,6 @@ function ProjectPage({ params }: ProjectPageProps) {
     };
 
     // Project settings
-
     const handleDraftSettings = (updates: any) => {
         setData((prev) => {
             // If no settings exist yet, we can't update them
@@ -286,6 +316,7 @@ function ProjectPage({ params }: ProjectPageProps) {
     const handlePublishSettings = async () => {
         if (!userId || !data.settings) {
             toast.error("Cannot save settings");
+            return;
         }
 
         try {
@@ -359,6 +390,4 @@ function ProjectPage({ params }: ProjectPageProps) {
     );
 }
 
-
 export default ProjectPage;
-

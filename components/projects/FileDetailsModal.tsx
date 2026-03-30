@@ -188,12 +188,12 @@ export function FileDetailsModal({ document, onClose }: FileDetailsModalProps) {
           {!["completed", "partitioning", "chunking", "summarising"].includes(
             activeTab
           ) && (
-            <GenericStep
-              stepName={currentStep?.name || "Processing"}
-              description={currentStep?.description || "Processing step"}
-              status={getStepStatus(activeTab)}
-            />
-          )}
+              <GenericStep
+                stepName={currentStep?.name || "Processing"}
+                description={currentStep?.description || "Processing step"}
+                status={getStepStatus(activeTab)}
+              />
+            )}
         </div>
 
         {/* Detail Inspector */}

@@ -44,6 +44,14 @@ function ProjectsPage() {
 
             const token = await getToken();
 
+            console.log("Token in loadProjects:", token ? token.substring(0, 20) + "..." : "NO TOKEN");
+
+            if (!token) {
+                console.warn("No token available");
+                setLoading(false);
+                return;
+            }
+
             const result = await apiClient.get("/api/projects", token);
 
             const { data } = result || {};
@@ -118,7 +126,7 @@ function ProjectsPage() {
         if (userId) {
             loadProjects();
         }
-    }, [userId]);
+    }, [userId, getToken]);
 
     const filteredProjects = projects.filter(
         (project) =>
