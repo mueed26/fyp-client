@@ -4,13 +4,22 @@ import React, { use, useEffect, useState } from "react";
 import { ConversationsList } from "@/components/projects/ConversationsList";
 import { KnowledgeBaseSidebar } from "@/components/projects/KnowledgeBaseSidebar";
 import { FileDetailsModal } from "@/components/projects/FileDetailsModal";
+import { SourceViewerModal } from "@/components/studio/SourceViewerModal";
+import { MindMapViewerModal } from "@/components/studio/MindMapViewerModal";
+import { FlashcardViewer } from "@/components/studio/FlashcardViewer";
+import { PracticeQuestionsViewer } from "@/components/studio/PracticeQuestionsViewer";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { NotFound } from "@/components/ui/NotFound";
 import toast from "react-hot-toast";
-import { Project, Chat, ProjectDocument, ProjectSettings } from "@/lib/types";
-
+import {
+    Project,
+    Chat,
+    ProjectDocument,
+    ProjectSettings,
+    GeneratedSource,
+} from "@/lib/types";
 import { useRouter } from "next/navigation";
 
 interface ProjectPageProps {
@@ -29,9 +38,8 @@ interface ProjectData {
 function ProjectPage({ params }: ProjectPageProps) {
     const { projectId } = use(params);
     const { getToken, userId } = useAuth();
-
     const router = useRouter();
-    // Data state
+
     const [data, setData] = useState<ProjectData>({
         project: null,
         chats: [],
@@ -41,43 +49,45 @@ function ProjectPage({ params }: ProjectPageProps) {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
     const [isCreatingChat, setIsCreatingChat] = useState(false);
 
-    // UI states
-    const [activeTab, setActiveTab] = useState<"documents" | "settings">(
-        "documents"
-    );
+    const [activeTab, setActiveTab] = useState<"documents" | "settings" | "studio">("documents");
+    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
 
-    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
-        null
-    );
+    // Studio states
+    const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+    const [generatedSources, setGeneratedSources] = useState<GeneratedSource[]>([]);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generatingType, setGeneratingType] = useState<string | null>(null);
+
+    // Modal states
+    const [viewingSource, setViewingSource] = useState<GeneratedSource | null>(null);
+    const [viewingMindMap, setViewingMindMap] = useState<{ title: string; content: string } | null>(null);
+    const [viewingFlashcards, setViewingFlashcards] = useState<{ title: string; content: string } | null>(null);
+    const [viewingPracticeQuestions, setViewingPracticeQuestions] = useState<{ title: string; content: string } | null>(null);
 
     // Load all data
     useEffect(() => {
         const loadAllData = async () => {
             if (!userId) return;
-
             try {
                 setLoading(true);
                 setError(null);
-
                 const token = await getToken();
-
-                const [projectRes, chatsRes, documentsRes, settingsRes] =
-                    await Promise.all([
-                        apiClient.get(`/api/projects/${projectId}`, token),
-                        apiClient.get(`/api/projects/${projectId}/chats`, token),
-                        apiClient.get(`/api/projects/${projectId}/files`, token),
-                        apiClient.get(`/api/projects/${projectId}/settings`, token),
-                    ]);
-
+                const [projectRes, chatsRes, documentsRes, settingsRes, sourcesRes] = await Promise.all([
+                    apiClient.get(`/api/projects/${projectId}`, token),
+                    apiClient.get(`/api/projects/${projectId}/chats`, token),
+                    apiClient.get(`/api/projects/${projectId}/files`, token),
+                    apiClient.get(`/api/projects/${projectId}/settings`, token),
+                    apiClient.get(`/api/projects/${projectId}/sources`, token),
+                ]);
                 setData({
                     project: projectRes.data,
                     chats: chatsRes.data,
                     documents: documentsRes.data,
                     settings: settingsRes.data,
                 });
+                setGeneratedSources(sourcesRes.data || []);
             } catch (err) {
                 setError("Failed to fetch data");
                 toast.error("Failed to fetch data");
@@ -85,271 +95,184 @@ function ProjectPage({ params }: ProjectPageProps) {
                 setLoading(false);
             }
         };
-
         loadAllData();
     }, [userId, projectId]);
 
+    // Polling for processing documents
     useEffect(() => {
-        const hasProcessingDocuments = data.documents.some(
-            (doc) =>
-                doc.processing_status &&
-                !["completed", "failed"].includes(doc.processing_status)
+        const hasProcessing = data.documents.some(
+            (doc) => doc.processing_status && !["completed", "failed"].includes(doc.processing_status)
         );
-
-        if (!hasProcessingDocuments) {
-            return;
-        }
-
-        const pollInterval = setInterval(async () => {
+        if (!hasProcessing) return;
+        const poll = setInterval(async () => {
             try {
                 const token = await getToken();
-                const documentsRes = await apiClient.get(
-                    `/api/projects/${projectId}/files`,
-                    token
-                );
-
-                setData((prev) => ({
-                    ...prev,
-                    documents: documentsRes.data,
-                }));
-            } catch (err) {
-                console.error("Polling error:", err);
-            }
+                const res = await apiClient.get(`/api/projects/${projectId}/files`, token);
+                setData((prev) => ({ ...prev, documents: res.data }));
+            } catch { }
         }, 2000);
-
-        return () => clearInterval(pollInterval);
+        return () => clearInterval(poll);
     }, [data.documents, projectId, getToken]);
 
-    // Chat-related methods
+    // ===== CHAT METHODS =====
     const handleCreateNewChat = async () => {
         if (!userId) return;
-
         try {
             setIsCreatingChat(true);
-
             const token = await getToken();
-
-            const chatNumber = Date.now() % 10000;
-
-            const result = await apiClient.post(
-                "/api/chats",
-                {
-                    title: `Chat #${chatNumber}`,
-                    project_id: projectId,
-                },
-                token
-            );
-
+            const result = await apiClient.post("/api/chats", { title: `Chat #${Date.now() % 10000}`, project_id: projectId }, token);
             const savedChat = result.data;
-            router.push(`/projects/${projectId}/chats/${savedChat.id}`)
-
-            // Update local state
-            setData((prev) => ({
-                ...prev,
-                chats: [savedChat, ...prev.chats],
-            }));
-
+            router.push(`/projects/${projectId}/chats/${savedChat.id}`);
+            setData((prev) => ({ ...prev, chats: [savedChat, ...prev.chats] }));
             toast.success("Chat Created successfully");
-        } catch (err) {
-            toast.error("Failed to create chat");
-        } finally {
-            setIsCreatingChat(false);
-        }
+        } catch { toast.error("Failed to create chat"); }
+        finally { setIsCreatingChat(false); }
     };
 
     const handleDeleteChat = async (chatId: string) => {
         if (!userId) return;
-
         try {
             const token = await getToken();
-
             await apiClient.delete(`/api/chats/${chatId}`, token);
-
-            // Update local state
-            setData((prev) => ({
-                ...prev,
-                chats: prev.chats.filter((chat) => chat.id !== chatId),
-            }));
-
+            setData((prev) => ({ ...prev, chats: prev.chats.filter((c) => c.id !== chatId) }));
             toast.success("Chat deleted successfully");
-        } catch (err) {
-            toast.error("Failed to delete chat");
-        }
+        } catch { toast.error("Failed to delete chat"); }
     };
 
-    const handleChatClick = (chatId: string) => {
-        router.push(`/projects/${projectId}/chats/${chatId}`)
-    };
+    const handleChatClick = (chatId: string) => router.push(`/projects/${projectId}/chats/${chatId}`);
 
-    // Document-related methods
+    // ===== DOCUMENT METHODS =====
     const handleDocumentUpload = async (files: File[]) => {
         if (!userId) return;
-
         const token = await getToken();
-        const uploadedDocuments: ProjectDocument[] = [];
-
-        // Process all files in parallel
-
-        const uploadPromises = files.map(async (file) => {
+        const uploaded: ProjectDocument[] = [];
+        await Promise.allSettled(files.map(async (file) => {
             try {
-                // Step 1: Get presigned URL
-                const uploadData = await apiClient.post(
-                    `/api/projects/${projectId}/files/upload-url`,
-                    {
-                        filename: file.name,
-                        file_size: file.size,
-                        file_type: file.type,
-                    },
-                    token
-                );
-
-                const { upload_url, s3_key } = uploadData.data;
-
-                // Step 2: Upload file to S3
-                await apiClient.uploadToS3(upload_url, file);
-
-                // Step 3: Confirm upload to the server (starts background processing)
-                const updatedDocument = await apiClient.post(
-                    `/api/projects/${projectId}/files/confirm`,
-                    {
-                        s3_key,
-                    },
-                    token
-                );
-
-                uploadedDocuments.push(updatedDocument.data);
-            } catch (err) {
-                toast.error(`Failed to upload ${file.name}`);
-            }
-        });
-
-        await Promise.allSettled(uploadPromises);
-
-        // Update local state with successfully uploaded docuemnts
-
-        if (uploadedDocuments.length > 0) {
-            setData((prev) => ({
-                ...prev,
-                documents: [...uploadedDocuments, ...prev.documents],
-            }));
-
-            toast.success(`${uploadedDocuments.length} file(s) uploaded`);
+                const uploadData = await apiClient.post(`/api/projects/${projectId}/files/upload-url`, { filename: file.name, file_size: file.size, file_type: file.type }, token);
+                await apiClient.uploadToS3(uploadData.data.upload_url, file);
+                const confirmed = await apiClient.post(`/api/projects/${projectId}/files/confirm`, { s3_key: uploadData.data.s3_key }, token);
+                uploaded.push(confirmed.data);
+            } catch { toast.error(`Failed to upload ${file.name}`); }
+        }));
+        if (uploaded.length > 0) {
+            setData((prev) => ({ ...prev, documents: [...uploaded, ...prev.documents] }));
+            toast.success(`${uploaded.length} file(s) uploaded`);
         }
     };
 
     const handleDocumentDelete = async (documentId: string) => {
         if (!userId) return;
-
         try {
             const token = await getToken();
-
-            await apiClient.delete(
-                `/api/projects/${projectId}/files/${documentId}`,
-                token
-            );
-
-            // Update local state - remove the deleted document
-            setData((prev) => ({
-                ...prev,
-                documents: prev.documents.filter((doc) => doc.id !== documentId),
-            }));
-
+            await apiClient.delete(`/api/projects/${projectId}/files/${documentId}`, token);
+            setData((prev) => ({ ...prev, documents: prev.documents.filter((d) => d.id !== documentId) }));
             toast.success("Document deleted successfully!");
-        } catch (err) {
-            toast.error("Document deletion failed");
-        }
+        } catch { toast.error("Document deletion failed"); }
     };
 
     const handleUrlAdd = async (url: string) => {
         if (!userId) return;
-
         try {
             const token = await getToken();
-
-            const result = await apiClient.post(
-                `/api/projects/${projectId}/urls`,
-                {
-                    url,
-                },
-                token
-            );
-
-            const newDocument = result.data;
-
-            // Update local state
-            setData((prev) => ({
-                ...prev,
-                documents: [newDocument, ...prev.documents],
-            }));
-
+            const result = await apiClient.post(`/api/projects/${projectId}/urls`, { url }, token);
+            setData((prev) => ({ ...prev, documents: [result.data, ...prev.documents] }));
             toast.success("Website added successfully!");
-        } catch (err) {
-            toast.error("Failed to add website");
-        }
+        } catch { toast.error("Failed to add website"); }
     };
 
-    const handleOpenDocument = (documentId: string) => {
-        console.log("Open document", documentId);
-        setSelectedDocumentId(documentId);
-    };
+    const handleOpenDocument = (documentId: string) => setSelectedDocumentId(documentId);
 
-    // Project settings
+    // ===== SETTINGS METHODS =====
     const handleDraftSettings = (updates: any) => {
         setData((prev) => {
-            // If no settings exist yet, we can't update them
-            if (!prev.settings) {
-                console.warn("Cannot update settings: not loaded yet");
-                return prev;
-            }
-
-            // Merge the updates into existing settings
-            return {
-                ...prev,
-                settings: {
-                    ...prev.settings,
-                    ...updates,
-                },
-            };
+            if (!prev.settings) return prev;
+            return { ...prev, settings: { ...prev.settings, ...updates } };
         });
     };
 
     const handlePublishSettings = async () => {
-        if (!userId || !data.settings) {
-            toast.error("Cannot save settings");
-            return;
-        }
-
+        if (!userId || !data.settings) { toast.error("Cannot save settings"); return; }
         try {
             const token = await getToken();
+            const result = await apiClient.put(`/api/projects/${projectId}/settings`, data.settings, token);
+            setData((prev) => ({ ...prev, settings: result.data }));
+            toast.success("Settings saved successfully!");
+        } catch { toast.error("Failed to save settings!"); }
+    };
 
-            const result = await apiClient.put(
-                `/api/projects/${projectId}/settings`,
-                data.settings,
-                token
-            );
+    // ===== STUDIO METHODS =====
+    const handleToggleDocSelection = (docId: string) => {
+        setSelectedDocIds((prev) => prev.includes(docId) ? prev.filter((id) => id !== docId) : [...prev, docId]);
+    };
 
+    const handleSelectAllDocs = () => {
+        setSelectedDocIds(data.documents.filter((d) => d.processing_status === "completed").map((d) => d.id));
+    };
+
+    const handleDeselectAllDocs = () => setSelectedDocIds([]);
+
+    const handleTagDocument = async (docId: string, tag: string) => {
+        try {
+            const token = await getToken();
+            await apiClient.put(`/api/projects/${projectId}/files/${docId}/tag`, { source_tag: tag }, token);
+            // Update local state
             setData((prev) => ({
                 ...prev,
-                settings: result.data,
+                documents: prev.documents.map((d) =>
+                    d.id === docId ? { ...d, source_tag: tag } as any : d
+                ),
             }));
-
-            toast.success("Settings saved successfully!");
-        } catch (err) {
-            toast.error("Failed to save settings!");
+            toast.success(`Document tagged as ${tag === "past_year_paper" ? "Past Year Paper" : "Lecture Notes"}`);
+        } catch {
+            toast.error("Failed to tag document");
         }
     };
 
-    if (loading) {
-        return <LoadingSpinner message="Loading project..." />;
-    }
+    const handleGenerateFeature = async (docIds: string[], featureType: string) => {
+        try {
+            setIsGenerating(true);
+            setGeneratingType(featureType);
+            const token = await getToken();
+            await apiClient.post(`/api/projects/${projectId}/features/generate`, { doc_ids: docIds, feature_type: featureType }, token);
+        } catch (err) {
+            toast.error(`Failed to generate ${featureType}`);
+            setIsGenerating(false);
+            setGeneratingType(null);
+            throw err;
+        }
+    };
 
-    if (!data.project) {
-        return <NotFound message="Project not found" />;
-    }
+    const handleMergeFeature = async (docIds: string[], sourceType: string) => {
+        try {
+            const token = await getToken();
+            const result = await apiClient.post(`/api/projects/${projectId}/features/merge`, { doc_ids: docIds, source_type: sourceType }, token);
+            setGeneratedSources((prev) => [result.data, ...prev]);
+            toast.success(`${sourceType.replace(/_/g, " ")} generated successfully!`);
+        } catch {
+            toast.error(`Failed to merge ${sourceType}`);
+        } finally {
+            setIsGenerating(false);
+            setGeneratingType(null);
+        }
+    };
 
-    const selectedDocument = selectedDocumentId
-        ? data.documents.find((doc) => doc.id == selectedDocumentId)
-        : null;
+    const handleViewSource = (source: GeneratedSource) => {
+        if (source.source_type === "mind_map") {
+            setViewingMindMap({ title: source.title, content: source.content });
+        } else if (source.source_type === "flashcards") {
+            setViewingFlashcards({ title: source.title, content: source.content });
+        } else if (source.source_type === "practice_questions") {
+            setViewingPracticeQuestions({ title: source.title, content: source.content });
+        } else {
+            setViewingSource(source);
+        }
+    };
+
+    // ===== RENDER =====
+    if (loading) return <LoadingSpinner message="Loading project..." />;
+    if (!data.project) return <NotFound message="Project not found" />;
+
+    const selectedDocument = selectedDocumentId ? data.documents.find((d) => d.id === selectedDocumentId) : null;
 
     return (
         <>
@@ -363,8 +286,6 @@ function ProjectPage({ params }: ProjectPageProps) {
                     onChatClick={handleChatClick}
                     onDeleteChat={handleDeleteChat}
                 />
-
-                {/* KnowledgeBase Sidebar */}
                 <KnowledgeBaseSidebar
                     activeTab={activeTab}
                     onSetActiveTab={setActiveTab}
@@ -378,14 +299,25 @@ function ProjectPage({ params }: ProjectPageProps) {
                     settingsLoading={false}
                     onUpdateSettings={handleDraftSettings}
                     onApplySettings={handlePublishSettings}
+                    selectedDocIds={selectedDocIds}
+                    onToggleDocSelection={handleToggleDocSelection}
+                    onSelectAllDocs={handleSelectAllDocs}
+                    onDeselectAllDocs={handleDeselectAllDocs}
+                    generatedSources={generatedSources}
+                    onGenerateFeature={handleGenerateFeature}
+                    onMergeFeature={handleMergeFeature}
+                    onViewSource={handleViewSource}
+                    onTagDocument={handleTagDocument}
+                    isGenerating={isGenerating}
+                    generatingType={generatingType}
                 />
             </div>
-            {selectedDocument && (
-                <FileDetailsModal
-                    document={selectedDocument}
-                    onClose={() => setSelectedDocumentId(null)}
-                />
-            )}
+
+            {selectedDocument && <FileDetailsModal document={selectedDocument} onClose={() => setSelectedDocumentId(null)} />}
+            {viewingSource && <SourceViewerModal source={viewingSource} onClose={() => setViewingSource(null)} />}
+            {viewingMindMap && <MindMapViewerModal title={viewingMindMap.title} content={viewingMindMap.content} onClose={() => setViewingMindMap(null)} />}
+            {viewingFlashcards && <FlashcardViewer title={viewingFlashcards.title} content={viewingFlashcards.content} onClose={() => setViewingFlashcards(null)} />}
+            {viewingPracticeQuestions && <PracticeQuestionsViewer title={viewingPracticeQuestions.title} content={viewingPracticeQuestions.content} onClose={() => setViewingPracticeQuestions(null)} />}
         </>
     );
 }

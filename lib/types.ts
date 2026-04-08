@@ -62,3 +62,15 @@ export interface ProjectDocument {
     source_url?: string;
     processing_details: unknown;
 }
+
+export interface GeneratedSource {
+    id: string;
+    project_id: string;
+    clerk_id: string;
+    title: string;
+    source_type: string;
+    content: string;
+    document_ids: string[];
+    total_sources: number;
+    created_at: string;
+}
