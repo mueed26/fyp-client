@@ -65,6 +65,7 @@ function ProjectsPage() {
         }
     };
 
+
     const handleCreateProject = async (name: string, description: string) => {
         try {
             setError(null);

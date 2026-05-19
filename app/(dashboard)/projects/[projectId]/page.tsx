@@ -141,6 +141,8 @@ function ProjectPage({ params }: ProjectPageProps) {
 
     const handleChatClick = (chatId: string) => router.push(`/projects/${projectId}/chats/${chatId}`);
 
+
+
     // ===== DOCUMENT METHODS =====
     const handleDocumentUpload = async (files: File[]) => {
         if (!userId) return;
@@ -267,6 +269,16 @@ function ProjectPage({ params }: ProjectPageProps) {
             setViewingSource(source);
         }
     };
+    const handleDeleteSource = async (sourceId: string) => {
+        try {
+            const token = await getToken();
+            await apiClient.delete(`/api/projects/${projectId}/sources/${sourceId}`, token);
+            setGeneratedSources((prev) => prev.filter((s) => s.id !== sourceId));
+            toast.success("Source deleted successfully");
+        } catch {
+            toast.error("Failed to delete source");
+        }
+    };
 
     // ===== RENDER =====
     if (loading) return <LoadingSpinner message="Loading project..." />;
@@ -290,6 +302,7 @@ function ProjectPage({ params }: ProjectPageProps) {
                     activeTab={activeTab}
                     onSetActiveTab={setActiveTab}
                     projectDocuments={data.documents}
+                    projectId={projectId}
                     onDocumentUpload={handleDocumentUpload}
                     onDocumentDelete={handleDocumentDelete}
                     onOpenDocument={handleOpenDocument}
@@ -308,6 +321,7 @@ function ProjectPage({ params }: ProjectPageProps) {
                     onMergeFeature={handleMergeFeature}
                     onViewSource={handleViewSource}
                     onTagDocument={handleTagDocument}
+                    onDeleteSource={handleDeleteSource}
                     isGenerating={isGenerating}
                     generatingType={generatingType}
                 />

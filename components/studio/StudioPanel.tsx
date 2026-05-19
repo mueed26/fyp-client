@@ -10,6 +10,7 @@ import {
     ClipboardList,
     Star,
     Tag,
+    Trash2,
 } from "lucide-react";
 import { ProjectDocument, GeneratedSource } from "@/lib/types";
 
@@ -26,6 +27,7 @@ interface StudioPanelProps {
     onTagDocument: (docId: string, tag: string) => Promise<void>;
     isGenerating: boolean;
     generatingType: string | null;
+    onDeleteSource: (sourceId: string) => Promise<void>;
 }
 
 const FEATURE_BUTTONS = [
@@ -117,6 +119,10 @@ export function StudioPanel({
         // Step 2: Merge into a generated source
         await onMergeFeature(selectedDocIds, featureType);
     };
+
+    function onDeleteSource(id: string) {
+        throw new Error("Function not implemented.");
+    }
 
     return (
         <div className="p-6 space-y-6 bg-[#1a1a1a] text-white h-full overflow-y-auto">
@@ -326,7 +332,7 @@ export function StudioPanel({
                             <button
                                 key={source.id}
                                 onClick={() => onViewSource(source)}
-                                className="w-full flex items-center gap-3 p-3 bg-[#202020] hover:bg-[#252525] border border-gray-800 hover:border-gray-700 rounded-lg transition-colors text-left"
+                                className="w-full flex items-center gap-3 p-3 bg-[#202020] hover:bg-[#252525] border border-gray-800 hover:border-gray-700 rounded-lg transition-colors text-left group"
                             >
                                 <div className="w-7 h-7 bg-[#252525] border border-gray-700 rounded-md flex items-center justify-center flex-shrink-0">
                                     {getSourceIcon(source.source_type)}
@@ -339,8 +345,20 @@ export function StudioPanel({
                                         {formatSourceType(source.source_type)} •{" "}
                                         {source.total_sources} source
                                         {source.total_sources !== 1 ? "s" : ""}
+                           
+                           
                                     </p>
                                 </div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteSource(source.id);
+                                    }}
+                                    className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                    title="Delete source"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
                             </button>
                         ))}
                     </div>
