@@ -9,18 +9,12 @@ interface MindMapViewerModalProps {
     onClose: () => void;
 }
 
-export function MindMapViewerModal({
-    title,
-    content,
-    onClose,
-}: MindMapViewerModalProps) {
+export function MindMapViewerModal({ title, content, onClose }: MindMapViewerModalProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [error, setError] = useState<string | null>(null);
 
     const handleOverlayClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget) {
-            onClose();
-        }
+        if (e.target === e.currentTarget) onClose();
     };
 
     useEffect(() => {
@@ -32,33 +26,24 @@ export function MindMapViewerModal({
         const initMindMap = async () => {
             try {
                 const MindElixir = (await import("mind-elixir")).default;
-
-                // Wait for the container to be fully laid out
                 timer = setTimeout(() => {
                     if (!containerRef.current) return;
-
-                    const options = {
+                    // `as any` keeps us safe across mind-elixir versions whose
+                    // Options type may or may not include every flag below.
+                    mind = new MindElixir({
                         el: containerRef.current,
                         direction: MindElixir.SIDE,
                         draggable: true,
                         editable: false,
                         contextMenu: false,
                         toolBar: false,
-                        nodeMenu: false,
-                    };
-
-                    mind = new MindElixir(options);
-
+                    } as any);
                     const data = JSON.parse(content);
                     mind.init(data);
-
-                    // Center the map after init
                     setTimeout(() => {
-                        if (mind && mind.toCenter) {
-                            mind.toCenter();
-                        }
+                        if (mind && mind.toCenter) mind.toCenter();
                     }, 200);
-                }, 500);
+                }, 400);
             } catch (err) {
                 console.error("Failed to initialize mind map:", err);
                 setError("Failed to render mind map");
@@ -66,88 +51,77 @@ export function MindMapViewerModal({
         };
 
         initMindMap();
-
         return () => {
             clearTimeout(timer);
-            if (containerRef.current) {
-                containerRef.current.innerHTML = "";
-            }
+            if (containerRef.current) containerRef.current.innerHTML = "";
         };
     }, [content]);
 
     return (
         <>
+            {/* Theme the mind-elixir canvas with the app's design tokens so it
+                matches light/dark mode instead of hardcoded colours. */}
             <style>{`
-        .mind-elixir {
-          background: #252525 !important;
-        }
-        me-tpc {
-          background: #333 !important;
-          color: #e5e7eb !important;
-          border-radius: 6px !important;
-          padding: 8px 16px !important;
-          font-size: 13px !important;
-          border: 1px solid #444 !important;
-          white-space: nowrap !important;
-        }
-        me-root > me-tpc {
-          background: #3b82f6 !important;
-          color: white !important;
-          font-size: 16px !important;
-          font-weight: 600 !important;
-          padding: 12px 24px !important;
-          border: none !important;
-        }
-      `}</style>
+                .mind-elixir { background: hsl(var(--background)) !important; }
+                me-tpc {
+                    background: hsl(var(--muted)) !important;
+                    color: hsl(var(--foreground)) !important;
+                    border: 1px solid hsl(var(--border)) !important;
+                    border-radius: 8px !important;
+                    padding: 8px 16px !important;
+                    font-size: 13px !important;
+                    white-space: nowrap !important;
+                }
+                me-root > me-tpc {
+                    background: hsl(var(--primary)) !important;
+                    color: hsl(var(--primary-foreground)) !important;
+                    font-size: 16px !important;
+                    font-weight: 600 !important;
+                    padding: 12px 24px !important;
+                    border: none !important;
+                }
+            `}</style>
 
             <div
-                className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                 onClick={handleOverlayClick}
             >
-                <div className="bg-[#1a1a1a] border border-gray-700 rounded-xl shadow-2xl w-full max-w-[90vw] h-[85vh] flex flex-col">
+                <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-[90vw] h-[85vh] flex flex-col overflow-hidden">
                     {/* Header */}
-                    <div className="flex items-center justify-between p-4 border-b border-gray-800 flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-center justify-center">
-                                <GitBranch size={18} className="text-orange-400" />
+                    <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <GitBranch size={17} className="text-orange-500" />
                             </div>
-                            <div>
-                                <h2 className="text-lg font-medium text-gray-200">{title}</h2>
-                                <p className="text-sm text-gray-400">
-                                    Mind Map • Drag to pan, scroll to zoom
-                                </p>
+                            <div className="min-w-0">
+                                <h2 className="text-sm font-semibold text-foreground truncate">{title}</h2>
+                                <p className="text-xs text-muted-foreground">Mind Map · Drag to pan, scroll to zoom</p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-300 transition-colors p-2 hover:bg-[#252525] rounded-lg"
+                            className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-lg flex-shrink-0"
                         >
                             <X size={18} />
                         </button>
                     </div>
 
-                    {/* Mind Map Container */}
-                    <div className="flex-1 overflow-hidden relative">
+                    {/* Canvas */}
+                    <div className="flex-1 overflow-hidden relative bg-background">
                         {error ? (
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <p className="text-red-400">{error}</p>
+                                <p className="text-destructive text-sm">{error}</p>
                             </div>
                         ) : (
-                            <div
-                                ref={containerRef}
-                                style={{
-                                    height: "100%",
-                                    width: "100%",
-                                }}
-                            />
+                            <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
                         )}
                     </div>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-gray-800 flex justify-end flex-shrink-0">
+                    <div className="p-4 border-t border-border flex justify-end flex-shrink-0">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-[#252525] hover:bg-[#2a2a2a] border border-gray-700 text-gray-300 rounded-lg transition-colors text-sm font-medium"
+                            className="px-4 py-2 bg-muted hover:bg-muted/70 border border-border text-foreground rounded-lg transition-colors text-sm font-medium"
                         >
                             Close
                         </button>

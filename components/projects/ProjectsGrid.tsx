@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Search, Grid3X3, List, Folder, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Search, Grid3X3, List, Trash2, Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { Project } from "@/lib/types";
 
 interface ProjectsGridProps {
@@ -9,14 +10,25 @@ interface ProjectsGridProps {
   error: string | null;
   searchQuery: string;
   viewMode: "grid" | "list";
-
   onSearchChange: (query: string) => void;
   onViewModeChange: (mode: "grid" | "list") => void;
   onProjectClick: (projectId: string) => void;
   onCreateProject: () => void;
-  onDeleteProject: (projectId: string) => void;
+  onDeleteProject: (projectId: string) => Promise<void> | void;
 }
 
+const CARD_STYLES = [
+  { bg: "bg-slate-100 dark:bg-slate-800/60", icon: "bg-slate-200 dark:bg-slate-700", emoji: "📘" },
+  { bg: "bg-stone-100 dark:bg-stone-800/60", icon: "bg-stone-200 dark:bg-stone-700", emoji: "📗" },
+  { bg: "bg-zinc-100 dark:bg-zinc-800/60", icon: "bg-zinc-200 dark:bg-zinc-700", emoji: "📙" },
+  { bg: "bg-neutral-100 dark:bg-neutral-800/60", icon: "bg-neutral-200 dark:bg-neutral-700", emoji: "📔" },
+  { bg: "bg-gray-100 dark:bg-gray-800/60", icon: "bg-gray-200 dark:bg-gray-700", emoji: "📕" },
+  { bg: "bg-slate-100 dark:bg-slate-800/60", icon: "bg-slate-200 dark:bg-slate-700", emoji: "📓" },
+];
+
+function getCardStyle(index: number) {
+  return CARD_STYLES[index % CARD_STYLES.length];
+}
 
 export function ProjectsGrid({
   projects,
@@ -30,234 +42,234 @@ export function ProjectsGrid({
   onCreateProject,
   onDeleteProject,
 }: ProjectsGridProps) {
-  return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white">
-      {/* Header */}
-      <div className="border-b border-gray-800/50 bg-[#0f0f0f]/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          {/* Top Row */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-medium text-white tracking-tight">
-                Projects
-              </h1>
-              <p className="text-gray-400 text-sm mt-1">
-                {projects.length} project{projects.length !== 1 ? "s" : ""}
-              </p>
-            </div>
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-            <button
-              onClick={onCreateProject}
-              disabled={loading}
-              className="bg-white hover:bg-gray-100 disabled:bg-gray-700 disabled:text-gray-500 text-black px-4 py-2.5 rounded-full flex items-center gap-2 transition-all duration-200 font-medium text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
-            >
-              <Plus size={16} />
-              Create new
-            </button>
+  const handleDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      setIsDeleting(true);
+      await onDeleteProject(deleteConfirmId);
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmId(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-destructive/10 border border-destructive/20 rounded-xl flex items-center justify-center">
+                <AlertTriangle size={16} className="text-destructive" />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">Delete project?</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-5 ml-12">
+              This action cannot be undone. The project and all of its data will be permanently deleted.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs text-foreground bg-muted hover:bg-muted/80 border border-border rounded-lg transition-colors disabled:opacity-50 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs text-destructive-foreground bg-destructive/80 hover:bg-destructive rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 font-medium"
+              >
+                {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky header */}
+      <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 py-5">
+          <div className="mb-4">
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">My projects</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              {projects.length} project{projects.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
-          {/* Controls Row */}
-          <div className="flex items-center justify-between gap-4">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-              />
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 disabled={loading}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-700 focus:border-transparent placeholder-gray-500 text-white text-sm disabled:opacity-50 transition-all duration-200"
+                className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-all disabled:opacity-50"
               />
             </div>
-
-            {/* View Controls */}
-            <div className="flex items-center gap-2">
-              {/* View Toggle */}
-              <div className="flex items-center bg-gray-900/50 border border-gray-800 rounded-lg p-1">
-                <button
-                  onClick={() => onViewModeChange("grid")}
-                  className={`p-1.5 rounded transition-all duration-200 ${viewMode === "grid"
-                    ? "bg-gray-700 text-white"
-                    : "text-gray-500 hover:text-gray-300"
-                    }`}
-                >
-                  <Grid3X3 size={16} />
-                </button>
-                <button
-                  onClick={() => onViewModeChange("list")}
-                  className={`p-1.5 rounded transition-all duration-200 ${viewMode === "list"
-                    ? "bg-gray-700 text-white"
-                    : "text-gray-500 hover:text-gray-300"
-                    }`}
-                >
-                  <List size={16} />
-                </button>
-              </div>
+            <div className="flex items-center bg-muted border border-border rounded-lg p-1 gap-0.5">
+              <button
+                onClick={() => onViewModeChange("grid")}
+                className={`p-1.5 rounded transition-colors ${viewMode === "grid"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                <Grid3X3 size={14} />
+              </button>
+              <button
+                onClick={() => onViewModeChange("list")}
+                className={`p-1.5 rounded transition-colors ${viewMode === "list"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                <List size={14} />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Error Display */}
       {error && (
-        <div className="max-w-7xl mx-auto px-6 pt-6">
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-            <span className="text-red-400 text-sm">{error}</span>
+        <div className="max-w-6xl mx-auto px-6 pt-5">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3">
+            <span className="text-destructive text-sm">{error}</span>
           </div>
         </div>
       )}
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-7">
         {projects.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-24">
             {searchQuery ? (
-              // No search results
-              <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 bg-gray-800 rounded-full mx-auto mb-6 flex items-center justify-center">
-                  <Search size={24} className="text-gray-500" />
+              <div className="max-w-xs mx-auto">
+                <div className="w-14 h-14 bg-muted rounded-2xl mx-auto mb-5 flex items-center justify-center">
+                  <Search size={20} className="text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-medium text-white mb-3">
-                  No projects found
-                </h3>
-                <p className="text-gray-400 mb-6">
-                  Try adjusting your search terms or create a new project
-                </p>
+                <h3 className="text-base font-semibold text-foreground mb-2">No projects found</h3>
+                <p className="text-muted-foreground text-sm mb-5">Try different search terms</p>
                 <button
                   onClick={() => onSearchChange("")}
-                  className="text-gray-300 hover:text-white text-sm underline underline-offset-4"
+                  className="text-sm text-foreground underline underline-offset-4"
                 >
                   Clear search
                 </button>
               </div>
             ) : (
-              // No projects at all
-              <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-xl">
-                  <Plus size={32} className="text-gray-400" />
-                </div>
-                <h3 className="text-2xl font-medium text-white mb-3">
+              <div className="max-w-xs mx-auto">
+                <div className="text-5xl mb-5">📚</div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Create your first project
                 </h3>
-                <p className="text-gray-400 mb-8 leading-relaxed">
-                  Projects help you organize your documents and conversations.
-                  Start by creating your first project.
+                <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+                  Organise your documents and start chatting with your AI study companion.
                 </p>
                 <button
                   onClick={onCreateProject}
-                  className="bg-white hover:bg-gray-100 text-black px-6 py-3 rounded-full transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="bg-foreground hover:bg-foreground/90 text-background px-5 py-2.5 rounded-xl text-sm font-medium transition-colors inline-flex items-center gap-2"
                 >
-                  Create your first project
+                  <Plus size={14} />
+                  Create project
                 </button>
               </div>
             )}
           </div>
         ) : (
-          // Projects Grid/List
-          <div className="space-y-6">
-            {/* Recent Projects Header */}
-            <div>
-              <h2 className="text-lg font-medium text-gray-300 mb-4">
-                Recent projects
-              </h2>
+          <div className="space-y-5">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Recent projects
+            </h2>
 
-              {viewMode === "grid" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {projects.map((project) => (
+            {viewMode === "grid" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {/* Create new card */}
+                <button
+                  onClick={onCreateProject}
+                  className="group h-[180px] border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all hover:bg-muted/40 cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-muted group-hover:bg-muted/80 flex items-center justify-center transition-colors">
+                    <Plus size={18} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </div>
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground font-medium transition-colors">
+                    Create new notebook
+                  </span>
+                </button>
+
+                {projects.map((project, index) => {
+                  const style = getCardStyle(index);
+                  return (
                     <div
                       key={project.id}
                       onClick={() => onProjectClick(project.id)}
-                      className="group bg-gray-900/50 hover:bg-gray-900/80 border border-gray-800 hover:border-gray-700 rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-xl hover:-translate-y-1 relative"
+                      className={`group relative h-[180px] ${style.bg} rounded-2xl p-5 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-sm`}
                     >
-                      {/* Project Icon */}
-                      <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl mb-4 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-200">
-                        <Folder size={24} className="text-gray-400" />
+                      <div className={`w-11 h-11 ${style.icon} rounded-xl mb-4 flex items-center justify-center text-xl`}>
+                        {style.emoji}
                       </div>
-
-                      {/* Project Info */}
-                      <div className="space-y-2">
-                        <h3 className="font-medium text-white text-base line-clamp-2 group-hover:text-gray-100 transition-colors">
-                          {project.name}
-                        </h3>
-
-                        {project.description && (
-                          <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">
-                            {project.description}
-                          </p>
-                        )}
-
-                        <div className="pt-2">
-                          <span className="text-xs text-gray-500">
-                            {new Date(project.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Delete Button */}
+                      <h3 className="font-semibold text-foreground text-sm line-clamp-2 leading-snug mb-1">
+                        {project.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(project.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteProject(project.id);
-                        }}
-                        className="absolute top-4 right-4 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-110"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(project.id); }}
+                        className="absolute top-3 right-3 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                         title="Delete project"
                       >
                         <Trash2 size={12} />
                       </button>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                // List View
-                <div className="space-y-2">
-                  {projects.map((project) => (
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {projects.map((project, index) => {
+                  const style = getCardStyle(index);
+                  return (
                     <div
                       key={project.id}
                       onClick={() => onProjectClick(project.id)}
-                      className="group flex items-center gap-4 bg-gray-900/30 hover:bg-gray-900/60 border border-gray-800/50 hover:border-gray-700 rounded-lg p-4 cursor-pointer transition-all duration-200"
+                      className="group flex items-center gap-4 bg-card hover:bg-muted border border-border rounded-xl p-4 cursor-pointer transition-all"
                     >
-                      {/* Icon */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Folder size={20} className="text-gray-400" />
+                      <div className={`w-9 h-9 ${style.icon} rounded-lg flex items-center justify-center text-base flex-shrink-0`}>
+                        {style.emoji}
                       </div>
-
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-white truncate group-hover:text-gray-100 transition-colors">
-                          {project.name}
-                        </h3>
+                        <h3 className="font-medium text-foreground text-sm truncate">{project.name}</h3>
                         {project.description && (
-                          <p className="text-gray-400 text-sm truncate mt-1">
-                            {project.description}
-                          </p>
+                          <p className="text-muted-foreground text-xs truncate mt-0.5">{project.description}</p>
                         )}
                       </div>
-
-                      {/* Date */}
-                      <div className="text-xs text-gray-500 flex-shrink-0 self-start">
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
                         {new Date(project.created_at).toLocaleDateString()}
-                      </div>
-
-                      {/* Delete Button */}
+                      </span>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteProject(project.id);
-                        }}
-                        className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-110"
-                        title="Delete project"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(project.id); }}
+                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        title="Delete"
                       >
                         <Trash2 size={12} />
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

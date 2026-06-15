@@ -9,10 +9,7 @@ interface Message {
   created_at: string;
   chat_id: string;
   clerk_id: string;
-  citations?: Array<{
-    filename: string;
-    page: number;
-  }>;
+  citations?: Array<{ filename: string; page: number }>;
 }
 
 interface MessageListProps {
@@ -34,28 +31,23 @@ export function MessageList({
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingMessage]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#1a1a1a]">
+    <div className="flex-1 overflow-y-auto bg-background">
       {messages.length === 0 && !isStreaming && !isLoading ? (
         <div className="flex items-center justify-center h-full">
-          <div className="text-center text-gray-400 max-w-md mx-auto px-6">
-            <div className="w-12 h-12 bg-[#252525] border border-gray-700 rounded-lg mx-auto mb-6 flex items-center justify-center">
-              <FileText size={18} className="text-gray-400" />
+          <div className="text-center max-w-md mx-auto px-6">
+            <div className="w-12 h-12 bg-muted border border-border rounded-xl mx-auto mb-5 flex items-center justify-center">
+              <FileText size={18} className="text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-gray-200 mb-3">
+            <h3 className="text-base font-semibold text-foreground mb-2">
               Start a conversation
             </h3>
-            <p className="text-gray-400 leading-relaxed">
-              Ask me anything about your documents and I'll help you find the
-              answers.
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Ask me anything about your documents and I'll help you find answers.
             </p>
           </div>
         </div>
@@ -66,50 +58,36 @@ export function MessageList({
               <div key={message.id} className="group">
                 <MessageItem message={message} onFeedback={onFeedback} />
 
-                {/* Citations UI */}
+                {/* Citations */}
                 {message.role === "assistant" &&
                   message.citations &&
                   message.citations.length > 0 && (
-                    <div className="mt-6 ml-0">
-                      <div className="bg-[#202020] border border-gray-800 rounded-lg p-4">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-5 h-5 bg-[#252525] border border-gray-700 rounded-md flex items-center justify-center">
-                            <FileText size={12} className="text-gray-400" />
-                          </div>
-                          <span className="text-sm font-medium text-gray-300">
+                    <div className="mt-4 ml-10">
+                      <div className="bg-card border border-border rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FileText size={12} className="text-muted-foreground" />
+                          <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
                             Sources ({message.citations.length})
                           </span>
                         </div>
-
-                        <div className="grid gap-2">
-                          {message.citations.map((citation, citationIndex) => (
+                        <div className="grid gap-1.5">
+                          {message.citations.map((citation, i) => (
                             <div
-                              key={citationIndex}
-                              className="flex items-center gap-3 bg-[#252525] hover:bg-[#2a2a2a] rounded-lg px-3 py-2 border border-gray-700 hover:border-gray-600 transition-colors"
+                              key={i}
+                              className="flex items-center gap-3 bg-muted/60 hover:bg-muted rounded-lg px-3 py-2 border border-border transition-colors"
                             >
-                              {/* Document Icon */}
-                              <div className="flex-shrink-0 w-7 h-7 bg-[#2a2a2a] border border-gray-600 rounded-md flex items-center justify-center">
-                                <FileText size={12} className="text-gray-400" />
+                              <div className="flex-shrink-0 w-6 h-6 bg-background border border-border rounded-md flex items-center justify-center">
+                                <FileText size={11} className="text-muted-foreground" />
                               </div>
-
-                              {/* Citation Info */}
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-200 truncate">
+                                <p className="text-xs font-medium text-foreground truncate">
                                   {citation.filename}
                                 </p>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  Page {citation.page}
-                                </p>
+                                <p className="text-xs text-muted-foreground">Page {citation.page}</p>
                               </div>
-
-                              {/* Page Number Badge */}
-                              <div className="flex-shrink-0">
-                                <div className="w-6 h-6 bg-[#2a2a2a] border border-gray-600 rounded-md flex items-center justify-center">
-                                  <span className="text-xs font-medium text-gray-400">
-                                    {citation.page}
-                                  </span>
-                                </div>
-                              </div>
+                              <span className="text-xs text-muted-foreground bg-background border border-border rounded px-1.5 py-0.5 flex-shrink-0">
+                                p.{citation.page}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -119,47 +97,37 @@ export function MessageList({
               </div>
             ))}
 
-            {/* Streaming Message */}
+            {/* Streaming */}
             {isStreaming && streamingMessage && (
-              <div className="group">
-                <div className="flex justify-start">
-                  <div className="bg-[#202020] border border-gray-800 rounded-lg p-4 max-w-[85%]">
-                    <p className="whitespace-pre-wrap text-gray-200 leading-relaxed text-sm">
-                      {streamingMessage}
-                    </p>
-
-                    {/* Typing Indicator */}
-                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-800">
-                      <div className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+              <div className="flex justify-start">
+                <div className="bg-card border border-border rounded-xl p-4 max-w-[85%]">
+                  <p className="whitespace-pre-wrap text-foreground leading-relaxed text-sm">
+                    {streamingMessage}
+                  </p>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                    <div className="flex items-center gap-1">
+                      {[0, 0.1, 0.2].map((delay, i) => (
                         <div
-                          className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.1s" }}
-                        ></div>
-                        <div
-                          className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.2s" }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-gray-400 ml-2">
-                        AI is thinking...
-                      </span>
+                          key={i}
+                          className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"
+                          style={{ animationDelay: `${delay}s` }}
+                        />
+                      ))}
                     </div>
+                    <span className="text-xs text-muted-foreground">Thinking...</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Loading State - with dynamic status */}
+            {/* Loading */}
             {isLoading && !isStreaming && (
               <div className="flex justify-start">
-                <div className="bg-[#202020] border border-gray-800 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <Loader2 size={16} className="text-gray-400 animate-spin" />
-                    <span className="text-sm text-gray-300">
-                      {agentStatus || "Thinking..."}
-                    </span>
-                  </div>
+                <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                  <Loader2 size={14} className="text-muted-foreground animate-spin" />
+                  <span className="text-sm text-muted-foreground">
+                    {agentStatus || "Thinking..."}
+                  </span>
                 </div>
               </div>
             )}

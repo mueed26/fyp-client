@@ -8,23 +8,24 @@ interface ModalHeaderProps {
 
 export function ModalHeader({ document, onClose }: ModalHeaderProps) {
   return (
-    <div className="flex items-center justify-between p-6 border-b border-gray-700">
+    <div className="flex items-center justify-between p-5 border-b border-gray-800 flex-shrink-0">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center">
-          {document.source_url ? <Globe size={20} /> : <FileText size={20} />}
+        <div className="w-9 h-9 bg-[#252525] border border-gray-700 rounded-lg flex items-center justify-center">
+          {document.source_url
+            ? <Globe size={15} className="text-gray-400" />
+            : <FileText size={15} className="text-gray-400" />
+          }
         </div>
         <div>
-          <h2 className="text-lg font-medium text-gray-100">
-            {document.filename}
-          </h2>
-          <p className="text-sm text-gray-400">Processing Pipeline</p>
+          <h2 className="text-sm font-semibold text-gray-100">{document.filename}</h2>
+          <p className="text-xs text-gray-400">Processing Pipeline</p>
         </div>
       </div>
       <button
         onClick={onClose}
-        className="text-gray-400 hover:text-gray-300 transition-colors p-2 hover:bg-[#2a2a2a] rounded-lg"
+        className="p-2 text-gray-400 hover:text-gray-200 hover:bg-[#252525] rounded-lg transition-colors"
       >
-        <X size={20} />
+        <X size={15} />
       </button>
     </div>
   );

@@ -31,13 +31,7 @@ const FEEDBACK_CATEGORIES = {
   ],
 };
 
-export function MessageFeedbackModal({
-  isOpen,
-  feedbackType,
-  onSubmit,
-  onClose,
-}: MessageFeedbackModalProps) {
-  // Modal manages its own form state
+export function MessageFeedbackModal({ isOpen, feedbackType, onSubmit, onClose }: MessageFeedbackModalProps) {
   const [comment, setComment] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,9 +39,7 @@ export function MessageFeedbackModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedbackType) return;
-
     setIsSubmitting(true);
-
     try {
       await onSubmit({
         rating: feedbackType,
@@ -59,7 +51,6 @@ export function MessageFeedbackModal({
     }
   };
 
-  // Don't render if modal is not open
   if (!isOpen || !feedbackType) return null;
 
   const categories = FEEDBACK_CATEGORIES[feedbackType];
@@ -67,40 +58,38 @@ export function MessageFeedbackModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#1a1a1a] border border-gray-700 rounded-xl shadow-2xl w-full max-w-md mx-4">
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4">
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+        <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#252525] border border-gray-700 rounded-lg flex items-center justify-center">
-              {isLike ? (
-                <ThumbsUp size={16} className="text-gray-400" />
-              ) : (
-                <ThumbsDown size={16} className="text-gray-400" />
-              )}
+            <div className="w-8 h-8 bg-muted border border-border rounded-lg flex items-center justify-center">
+              {isLike
+                ? <ThumbsUp size={14} className="text-muted-foreground" />
+                : <ThumbsDown size={14} className="text-muted-foreground" />
+              }
             </div>
             <div>
-              <h2 className="text-lg font-medium text-gray-200">
+              <h2 className="text-sm font-semibold text-foreground">
                 {isLike ? "What did you like?" : "What went wrong?"}
               </h2>
-              <p className="text-sm text-gray-400">
-                Your feedback helps improve responses
-              </p>
+              <p className="text-xs text-muted-foreground">Your feedback helps improve responses</p>
             </div>
           </div>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-300 transition-colors p-2 hover:bg-[#252525] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
 
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Category Selection */}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">
+            <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-2.5">
               What specifically {isLike ? "did you like" : "went wrong"}?
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -110,11 +99,10 @@ export function MessageFeedbackModal({
                   type="button"
                   onClick={() => setSelectedCategory(category.value)}
                   disabled={isSubmitting}
-                  className={`p-3 text-sm rounded-lg border transition-colors disabled:opacity-50 ${
-                    selectedCategory === category.value
-                      ? "border-white/20 bg-white/10 text-white shadow-sm"
-                      : "border-gray-700 bg-[#202020] text-gray-400 hover:border-gray-600 hover:bg-[#252525] hover:text-gray-300"
-                  }`}
+                  className={`p-2.5 text-xs font-medium rounded-xl border transition-colors disabled:opacity-50 ${selectedCategory === category.value
+                      ? "border-foreground/30 bg-secondary text-foreground"
+                      : "border-border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
                 >
                   {category.label}
                 </button>
@@ -124,14 +112,11 @@ export function MessageFeedbackModal({
 
           {/* Comment */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">
+            <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-2.5">
               Additional feedback (optional)
             </label>
             <div className="relative">
-              <MessageSquare
-                className="absolute top-3 left-3 text-gray-400"
-                size={14}
-              />
+              <MessageSquare className="absolute top-3 left-3 text-muted-foreground" size={13} />
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
@@ -139,37 +124,35 @@ export function MessageFeedbackModal({
                 rows={4}
                 disabled={isSubmitting}
                 maxLength={500}
-                className="w-full pl-10 pr-4 py-3 bg-[#252525] border border-gray-700 rounded-lg focus:outline-none focus:border-gray-600 resize-none disabled:opacity-50 placeholder:text-gray-400 text-gray-200 transition-colors"
+                className="w-full pl-9 pr-4 py-2.5 bg-muted border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none disabled:opacity-50 transition-all"
               />
             </div>
-            <div className="flex justify-between items-center mt-2">
-              <p className="text-xs text-gray-500">
-                Help us understand what happened
-              </p>
-              <p className="text-xs text-gray-500">{comment.length}/500</p>
+            <div className="flex justify-between mt-1.5">
+              <p className="text-xs text-muted-foreground">Help us understand what happened</p>
+              <p className="text-xs text-muted-foreground">{comment.length}/500</p>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2.5 text-gray-300 bg-[#252525] hover:bg-[#2a2a2a] disabled:bg-[#202020] disabled:text-gray-500 disabled:cursor-not-allowed border border-gray-700 rounded-lg transition-colors font-medium"
+              className="flex-1 px-4 py-2.5 text-xs font-medium text-foreground bg-muted hover:bg-muted/80 border border-border rounded-xl transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2.5 bg-white hover:bg-gray-100 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-black rounded-lg transition-colors font-medium"
+              className="flex-1 px-4 py-2.5 text-xs font-medium bg-foreground hover:bg-foreground/90 disabled:opacity-50 text-background rounded-xl transition-colors"
             >
               {isSubmitting ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin"></div>
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-3 h-3 border-2 border-background/40 border-t-background rounded-full animate-spin" />
                   Submitting...
-                </div>
+                </span>
               ) : (
                 "Submit feedback"
               )}

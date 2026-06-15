@@ -1,7 +1,9 @@
+
+
 "use client";
 
 import { useState } from "react";
-import { X, Sparkles } from "lucide-react";
+import { X, BookOpen } from "lucide-react";
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -38,52 +40,44 @@ export function CreateProjectModal({
     onClose();
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={handleOverlayClick}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
-      <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl transform transition-all duration-200 scale-100">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/20 rounded-xl flex items-center justify-center">
-              <Sparkles size={20} className="text-blue-400" />
+            <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
+              <BookOpen size={18} className="text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-medium text-white">
-                Create new project
+              <h2 className="text-base font-semibold text-foreground">
+                New project
               </h2>
-              <p className="text-sm text-gray-400">
-                Start organizing your knowledge
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Organise your knowledge
               </p>
             </div>
           </div>
-
           <button
             onClick={handleClose}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-300 transition-colors p-2 hover:bg-gray-800 rounded-lg disabled:opacity-50"
+            className="text-muted-foreground hover:text-foreground p-1.5 hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Project Name */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-300 mb-3"
+              className="block text-sm font-medium text-foreground mb-2"
             >
               Project name
             </label>
@@ -92,72 +86,62 @@ export function CreateProjectModal({
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Research Analysis, Meeting Notes..."
+              placeholder="e.g. Operating Systems, Machine Learning..."
               disabled={isLoading}
-              className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 disabled:opacity-50 text-white placeholder-gray-500 transition-all duration-200"
+              className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary/40 transition-all disabled:opacity-50"
               required
               autoFocus
             />
           </div>
 
-          {/* Description */}
           <div>
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-gray-300 mb-3"
+              className="block text-sm font-medium text-foreground mb-2"
             >
-              Description
-              <span className="text-gray-500 font-normal ml-1">(optional)</span>
+              Description{" "}
+              <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What will this project be about?"
+              placeholder="What is this project about?"
               rows={3}
               disabled={isLoading}
-              className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 disabled:opacity-50 text-white placeholder-gray-500 resize-none transition-all duration-200"
+              className="w-full px-3.5 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary/40 disabled:opacity-50 resize-none transition-all"
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2.5 pt-1">
             <button
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="flex-1 px-4 py-3 text-gray-300 bg-gray-800/50 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500 border border-gray-700 rounded-xl transition-all duration-200 font-medium"
+              className="flex-1 px-4 py-2.5 text-sm text-foreground bg-muted hover:bg-muted/80 border border-border rounded-xl transition-colors disabled:opacity-50 font-medium"
             >
               Cancel
             </button>
-
             <button
               type="submit"
               disabled={!name.trim() || isLoading}
-              className="flex-1 px-4 py-3 bg-white hover:bg-gray-100 disabled:bg-gray-600 disabled:text-gray-400 text-black rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 text-sm bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin"></div>
+                  <div className="w-3.5 h-3.5 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
                   Creating...
                 </>
               ) : (
-                <>
-                  <Sparkles size={16} />
-                  Create project
-                </>
+                "Create project"
               )}
             </button>
           </div>
         </form>
 
-        {/* Footer hint */}
-        <div className="px-6 pb-6">
-          <p className="text-xs text-gray-500 text-center">
-            You can add documents and start chatting once your project is
-            created
-          </p>
-        </div>
+        <p className="px-6 pb-5 text-xs text-muted-foreground text-center">
+          You can add documents and start chatting after creation
+        </p>
       </div>
     </div>
   );

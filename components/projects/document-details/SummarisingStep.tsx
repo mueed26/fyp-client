@@ -1,5 +1,5 @@
+import { CheckCircle, Loader2 } from "lucide-react";
 import { GenericStep } from "./GenericStep";
-import { Loader2, CheckCircle } from "lucide-react";
 
 interface SummarisingStepProps {
   status: "completed" | "processing" | "failed" | "pending";
@@ -9,10 +9,7 @@ interface SummarisingStepProps {
   };
 }
 
-export function SummarisingStep({
-  status,
-  summarisingData,
-}: SummarisingStepProps) {
+export function SummarisingStep({ status, summarisingData }: SummarisingStepProps) {
   if (!summarisingData) {
     return (
       <GenericStep
@@ -27,37 +24,28 @@ export function SummarisingStep({
     return (
       <div className="p-8">
         <div className="max-w-2xl mx-auto text-center">
-          <h3 className="text-xl font-medium text-gray-100 mb-2">
-            Summarisation
-          </h3>
-          <p className="text-gray-400 mb-6">
-            Enhancing content with AI summaries for images and tables
-          </p>
+          <h3 className="text-lg font-semibold text-gray-100 mb-2">Summarisation</h3>
+          <p className="text-sm text-gray-400 mb-6">Enhancing content with AI summaries for images and tables</p>
 
-          <div className="mb-6 bg-purple-500/5 border border-purple-500/20 rounded-xl p-4">
-            <h4 className="font-medium text-purple-300 mb-3">
-              🤖 AI Summarising Progress
+          <div className="mb-4 bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
+            <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-3">
+              AI Summarising Progress
             </h4>
-
-            <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-600">
-              <div className="text-center">
-                <div className="font-bold text-3xl text-purple-400 mb-2">
-                  {summarisingData.current_chunk} /{" "}
-                  {summarisingData.total_chunks}
-                </div>
-                <div className="text-gray-400">chunks processed</div>
+            <div className="bg-[#1a1a1a] border border-gray-700 rounded-lg p-6">
+              <div className="text-3xl font-bold text-blue-400 mb-1">
+                {summarisingData.current_chunk} / {summarisingData.total_chunks}
               </div>
+              <div className="text-xs text-gray-400">chunks processed</div>
             </div>
-
-            <div className="mt-3 text-xs text-purple-300">
+            <p className="text-xs text-blue-300/70 mt-3">
               Processing chunks and creating AI summaries for images and tables
-            </div>
+            </p>
           </div>
 
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
             <div className="flex items-center justify-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-              <span className="text-blue-300 font-medium">Processing...</span>
+              <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+              <span className="text-sm font-medium text-blue-300">Processing...</span>
             </div>
           </div>
         </div>
@@ -69,41 +57,28 @@ export function SummarisingStep({
     return (
       <div className="p-8">
         <div className="max-w-2xl mx-auto text-center">
-          <h3 className="text-xl font-medium text-gray-100 mb-2">
-            Summarisation
-          </h3>
-          <p className="text-gray-400 mb-6">
-            Enhancing content with AI summaries for images and tables
-          </p>
+          <h3 className="text-lg font-semibold text-gray-100 mb-2">Summarisation</h3>
+          <p className="text-sm text-gray-400 mb-6">Enhancing content with AI summaries for images and tables</p>
 
-          <div className="mb-6 bg-green-500/5 border border-green-500/20 rounded-xl p-4">
-            <h4 className="font-medium text-green-300 mb-3">
-              🤖 AI Enhancement Complete
+          <div className="mb-4 bg-green-500/5 border border-green-500/20 rounded-xl p-4">
+            <h4 className="text-xs font-semibold text-green-300 uppercase tracking-wider mb-3">
+              AI Enhancement Complete
             </h4>
-
-            <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-600">
-              <div className="text-center">
-                <div className="font-bold text-3xl text-green-400 mb-2">
-                  {summarisingData.total_chunks}
-                </div>
-                <div className="text-gray-400">
-                  chunks enhanced with AI summaries
-                </div>
+            <div className="bg-[#1a1a1a] border border-gray-700 rounded-lg p-6">
+              <div className="text-3xl font-bold text-green-400 mb-1">
+                {summarisingData.total_chunks}
               </div>
+              <div className="text-xs text-gray-400">chunks enhanced with AI summaries</div>
             </div>
-
-            <div className="mt-3 text-xs text-green-300">
-              All chunks have been processed and enhanced with AI summaries for
-              images and tables
-            </div>
+            <p className="text-xs text-green-300/70 mt-3">
+              All chunks processed and enhanced with AI summaries for images and tables
+            </p>
           </div>
 
           <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
             <div className="flex items-center justify-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-400" />
-              <span className="text-green-300 font-medium">
-                Step completed successfully
-              </span>
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span className="text-sm font-medium text-green-300">Step completed successfully</span>
             </div>
           </div>
         </div>
@@ -111,7 +86,6 @@ export function SummarisingStep({
     );
   }
 
-  // Fallback for other statuses (failed, pending)
   return (
     <GenericStep
       stepName="Summarisation"
